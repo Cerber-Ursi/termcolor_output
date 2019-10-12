@@ -1,0 +1,13 @@
+[package]
+name = "termcolor_output"
+version = "0.1.0"
+authors = ["Cerberuser"]
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+
+[dev-dependencies]
+trybuild = "1.0"
