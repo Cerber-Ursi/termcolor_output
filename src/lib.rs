@@ -1,59 +1,12 @@
-extern crate proc_macro;
+pub use termcolor_output_impl::colored as colored_impl;
 
-use proc_macro::{
-    Delimiter, Group, Ident, Literal, Punct, Spacing::*, Span, TokenStream, TokenTree,
-};
-
-#[proc_macro]
-pub fn colored(input: TokenStream) -> TokenStream {
-    vec![
-        TokenTree::Ident(Ident::new("fn", Span::call_site())),
-        TokenTree::Ident(Ident::new("write", Span::call_site())),
-        TokenTree::Group(Group::new(Delimiter::Parenthesis, TokenStream::new())),
-        TokenTree::Group(Group::new(Delimiter::Brace, colored_impl(input))),
-    ]
-    .into_iter()
-    .collect()
-}
-
-fn colored_impl(input: TokenStream) -> TokenStream {
-    let mut tokens = input.into_iter();
-    let format_token = match tokens.next() {
-        Some(f) => f,
-        None => {
-            return compile_error(
-                Span::call_site(),
-                "colored! macro can't be called without arguments",
-            )
+#[macro_export]
+macro_rules! colored {
+    ($($arg:tt),*) => {{
+        struct __Writer;
+        impl __Writer {
+            colored_impl!($($arg),*);
         }
-    };
-    let format = format_token.to_string();
-    if !format.starts_with('"') {
-        return compile_error(
-            format_token.span(),
-            "The first argument must be a literal string",
-        );
-    }
-
-    let rest: Vec<_> = tokens.collect();
-
-    unimplemented!();
-}
-
-fn compile_error(start: Span, error: &str) -> TokenStream {
-    vec![
-        TokenTree::Ident(Ident::new("compile_error", start)),
-        TokenTree::Punct(Punct::new('!', Alone)),
-        TokenTree::Group(Group::new(
-            Delimiter::Parenthesis,
-            vec![
-                // TODO span
-                TokenTree::Literal(Literal::string(error)),
-            ]
-            .into_iter()
-            .collect(),
-        )),
-    ]
-    .into_iter()
-    .collect()
+        __Writer::write($(&($arg)),*);
+    }}
 }
