@@ -1,12 +1,14 @@
-pub use termcolor_output_impl::colored as colored_impl;
+extern crate termcolor_output_impl;
+pub trait ColoredOutput {}
 
 #[macro_export]
 macro_rules! colored {
-    ($($arg:tt),*) => {{
-        struct __Writer;
-        impl __Writer {
-            colored_impl!($($arg),*);
+    ($($arg:tt)*) => {{
+        use $crate::ColoredOutput;
+        #[derive(ColoredOutput)]
+        enum __Writer {
+            data = (stringify!($($arg)*), 0).1
         }
-        __Writer::write($(&($arg)),*);
+        colored_impl!();
     }}
 }
