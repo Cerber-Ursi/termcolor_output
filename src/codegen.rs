@@ -1,5 +1,7 @@
 use crate::formatter::FormatterKind;
-use proc_macro::{Delimiter, Group, Ident, Punct, Spacing::*, Span, TokenStream, TokenTree};
+use proc_macro::{
+    Delimiter::*, Group, Ident, Literal, Punct, Spacing::*, Span, TokenStream, TokenTree,
+};
 
 #[derive(Debug)]
 pub struct Arg {
@@ -7,63 +9,50 @@ pub struct Arg {
     pub expr: TokenStream,
 }
 
-pub fn func(args: Vec<Arg>, body: TokenStream) -> TokenStream {
-    eprintln!("{:?}", args);
+macro_rules! tt {
+    (Literal::$ty:tt($($args:expr),*)) => {
+        TokenTree::Literal(Literal::$ty($($args),*))
+    };
+    ($ty:tt($($args:expr),*)) => {
+        TokenTree::$ty($ty::new($($args),*))
+    };
+}
+
+pub fn macro_wrapper(body: TokenStream) -> TokenStream {
     vec![
-        TokenTree::Ident(Ident::new("fn", Span::call_site())),
-        TokenTree::Ident(Ident::new("write", Span::call_site())),
-        TokenTree::Punct(Punct::new('<', Alone)),
+        tt!(Ident("macro_rules", Span::call_site())),
+        tt!(Punct('!', Alone)),
+        tt!(Ident("colored_impl", Span::call_site())),
+        tt!(Group(
+            Brace,
+            vec![
+                tt!(Group(Parenthesis, TokenStream::new())),
+                tt!(Punct('=', Joint)),
+                tt!(Punct('>', Alone)),
+                tt!(Group(Brace, body))
+            ]
+            .into_iter()
+            .collect()
+        )),
     ]
     .into_iter()
-    .chain(args_to_types(&args).into_iter())
-    .chain(
-        vec![
-            TokenTree::Punct(Punct::new('>', Alone)),
-            TokenTree::Group(Group::new(Delimiter::Parenthesis, args_to_stream(&args))),
-            TokenTree::Group(Group::new(Delimiter::Brace, body)),
-        ]
-        .into_iter(),
-    )
     .collect()
 }
 
-fn args_to_types(args: &[Arg]) -> TokenStream {
-    args.into_iter()
-        .enumerate()
-        .flat_map(|(index, arg)| {
-            // TODO - what Span should we use here?
-            let mut ty = vec![TokenTree::Ident(Ident::new(
-                &format!("T{}", index),
-                Span::call_site(),
-            ))];
-            if let Some(kind) = arg.kind.clone() {
-                if let FormatterKind::Unknown(_) = kind {
-                } else {
-                    ty.push(TokenTree::Punct(Punct::new(':', Alone)));
-                    ty.push(TokenTree::Ident(Ident::new(
-                        match kind {
-                            FormatterKind::Debug => "Debug",
-                            FormatterKind::Display => "Display",
-                            FormatterKind::Unknown(_) => unreachable!(),
-                        },
-                        Span::call_site(),
-                    )));
-                }
-            }
-            ty
-        })
-        .collect()
-}
-
-fn args_to_stream(args: &[Arg]) -> TokenStream {
-    args.into_iter()
-        .enumerate()
-        .flat_map(|(index, _)| {
+pub fn compile_error(start: Span, error: &str) -> TokenStream {
+    vec![
+        tt!(Ident("compile_error", start)),
+        tt!(Punct('!', Alone)),
+        tt!(Group(
+            Parenthesis,
             vec![
-                TokenTree::Ident(Ident::new(&format!("_arg{}", index), Span::call_site())),
-                TokenTree::Punct(Punct::new(':', Alone)),
-                TokenTree::Ident(Ident::new(&format!("T{}", index), Span::call_site())),
+                // TODO span
+                tt!(Literal::string(error)),
             ]
-        })
-        .collect()
+            .into_iter()
+            .collect()
+        )),
+    ]
+    .into_iter()
+    .collect()
 }

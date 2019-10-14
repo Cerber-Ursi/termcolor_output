@@ -1,19 +1,17 @@
 extern crate proc_macro;
 
-use proc_macro::{
-    Delimiter, Group, Ident, Literal, Punct, Spacing::*, Span, TokenStream, TokenTree,
-};
+use proc_macro::{Span, TokenStream, TokenTree};
 
 mod codegen;
 mod formatter;
 
-use codegen::Arg;
+use codegen::{compile_error, macro_wrapper, Arg};
 
-#[proc_macro]
-pub fn colored(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(ColoredOutput)]
+pub fn colored_derive(input: TokenStream) -> TokenStream {
     let input = parse_input(input);
-    if let Err((args, body)) = input {
-        return codegen::func(args, body);
+    if let Err((_, body)) = input {
+        return macro_wrapper(body);
     }
 
     unimplemented!();
@@ -42,7 +40,7 @@ fn parse_input(input: TokenStream) -> Result<(String, Vec<Arg>), (Vec<Arg>, Toke
                     "The first argument to colored! macro can't be a string. Did you forget to provide the Writer?"
                 } else {
                     "colored! macro requires at least two arguments - writer and format string"
-                }
+                },
             ),
         ))?,
     };
@@ -63,7 +61,10 @@ fn parse_input(input: TokenStream) -> Result<(String, Vec<Arg>), (Vec<Arg>, Toke
 }
 
 fn parse_tokens(writer: TokenTree, mut input: proc_macro::token_stream::IntoIter) -> Vec<Arg> {
-    let mut args = vec![Arg {kind: None, expr: TokenStream::new()}];
+    let mut args = vec![Arg {
+        kind: None,
+        expr: TokenStream::new(),
+    }];
     let mut cur = vec![];
     while let Some(tok) = input.next() {
         if let TokenTree::Punct(punct) = tok.clone() {
@@ -78,22 +79,4 @@ fn parse_tokens(writer: TokenTree, mut input: proc_macro::token_stream::IntoIter
         cur.push(tok);
     }
     args
-}
-
-fn compile_error(start: Span, error: &str) -> TokenStream {
-    vec![
-        TokenTree::Ident(Ident::new("compile_error", start)),
-        TokenTree::Punct(Punct::new('!', Alone)),
-        TokenTree::Group(Group::new(
-            Delimiter::Parenthesis,
-            vec![
-                // TODO span
-                TokenTree::Literal(Literal::string(error)),
-            ]
-            .into_iter()
-            .collect(),
-        )),
-    ]
-    .into_iter()
-    .collect()
 }
