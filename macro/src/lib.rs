@@ -1,10 +1,9 @@
-extern crate termcolor_output_impl;
-pub trait ColoredOutput {}
+trait ColoredOutput {}
 
 #[macro_export]
 macro_rules! colored {
     ($($arg:tt)*) => {{
-        use $crate::ColoredOutput;
+        use termcolor_output_impl::ColoredOutput;
         #[derive(ColoredOutput)]
         enum __Writer {
             data = (stringify!($($arg)*), 0).1
