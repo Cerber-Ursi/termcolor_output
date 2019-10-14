@@ -1,13 +1,6 @@
-use crate::formatter::FormatterKind;
 use proc_macro::{
     Delimiter::*, Group, Ident, Literal, Punct, Spacing::*, Span, TokenStream, TokenTree,
 };
-
-#[derive(Debug)]
-pub struct Arg {
-    pub kind: Option<FormatterKind>,
-    pub expr: TokenStream,
-}
 
 macro_rules! tt {
     (Literal::$ty:tt($($args:expr),*)) => {
@@ -39,8 +32,10 @@ pub fn macro_wrapper(body: TokenStream) -> TokenStream {
     .collect()
 }
 
-pub fn compile_error(start: Span, error: &str) -> TokenStream {
-    vec![
+// When (and if) never-type is stabilized, this will return Result<!, TokenStream>.
+// The Result is here only for call ergonomics.
+pub fn compile_error(start: Span, error: &str) -> Result<TokenStream, TokenStream> {
+    Err(vec![
         tt!(Ident("compile_error", start)),
         tt!(Punct('!', Alone)),
         tt!(Group(
@@ -54,5 +49,5 @@ pub fn compile_error(start: Span, error: &str) -> TokenStream {
         )),
     ]
     .into_iter()
-    .collect()
+    .collect())
 }
