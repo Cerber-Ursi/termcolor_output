@@ -1,0 +1,11 @@
+[package]
+name = "termcolor_output"
+version = "0.1.0"
+authors = ["Cerberuser"]
+edition = "2018"
+
+[dependencies]
+termcolor_output_impl = { path = "../derive" }
+
+[dev-dependencies]
+trybuild = "1.0"
