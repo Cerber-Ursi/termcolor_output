@@ -2,6 +2,8 @@ use proc_macro::{
     Delimiter::*, Group, Ident, Literal, Punct, Spacing::*, Span, TokenStream, TokenTree,
 };
 
+use crate::CompileError;
+
 macro_rules! tt {
     (Literal::$ty:tt($($args:expr),*)) => {
         TokenTree::Literal(Literal::$ty($($args),*))
@@ -32,22 +34,14 @@ pub fn macro_wrapper(body: TokenStream) -> TokenStream {
     .collect()
 }
 
-// When (and if) never-type is stabilized, this will return Result<!, TokenStream>.
-// The Result is here only for call ergonomics.
-pub fn compile_error(start: Span, error: &str) -> Result<TokenStream, TokenStream> {
-    Err(vec![
+pub fn compile_error((start, error): CompileError) -> TokenStream {
+    let mut inner = tt!(Literal::string(error));
+    inner.set_span(start);
+    vec![
         tt!(Ident("compile_error", start)),
         tt!(Punct('!', Alone)),
-        tt!(Group(
-            Parenthesis,
-            vec![
-                // TODO span
-                tt!(Literal::string(error)),
-            ]
-            .into_iter()
-            .collect()
-        )),
+        tt!(Group(Parenthesis, vec![inner].into_iter().collect())),
     ]
     .into_iter()
-    .collect())
+    .collect()
 }
