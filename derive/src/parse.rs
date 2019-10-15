@@ -1,4 +1,4 @@
-use crate::{CompileError, FormatItems, MacroInput};
+use crate::{CompileError, FormatItems, FormatPart, MacroInput};
 use proc_macro::{Span, TokenStream, TokenTree};
 
 fn wrong_input() -> CompileError {
@@ -47,6 +47,7 @@ pub fn parse_input(input: TokenStream) -> Result<MacroInput, CompileError> {
         }
     };
     let format = parse_format_string(format_token)?;
+    eprintln!("{:?}", format);
 
     Ok(MacroInput {
         writer,
@@ -96,9 +97,8 @@ fn parse_format_string(input: TokenStream) -> Result<FormatItems, CompileError> 
     };
     let span = format_token.span();
     match format_token {
-        TokenTree::Literal(_) => {},
+        TokenTree::Literal(_) => {}
         _ => return Err((span, "The second argument must be a literal string")),
-        
     };
     let format = format_token.to_string();
     if !format.starts_with('"') {
@@ -109,9 +109,53 @@ fn parse_format_string(input: TokenStream) -> Result<FormatItems, CompileError> 
     let mut parts = vec![];
     // this will usually overallocate, but the format string isn't going to be large anyway
     let mut cur = String::with_capacity(format.len());
-    let mut in_format = false; 
-    
-    unimplemented!();
- 
-    Ok(FormatItems {span, parts})
+    let mut in_format = false;
+    let mut chars = format.chars();
+
+    while let Some(ch) = chars.next() {
+        if in_format && ch == '}' {
+            in_format = false;
+            parts.push(FormatPart::Input(cur.clone() + "}"));
+            cur.clear();
+        } else if !in_format && ch == '{' {
+            if let Some(next) = chars.next() {
+                if next == '{' {
+                    cur.push(next);
+                } else {
+                    parts.push(FormatPart::Text(cur.clone()));
+                    if next == '}' {
+                        // special case, handled right here
+                        parts.push(FormatPart::Input("{}".into()));
+                        cur.clear();
+                    } else {
+                        in_format = true;
+                    
+                    cur.clear();
+                    cur.push('{');
+                cur.push(next);
+                    }
+                }
+            } else {
+                return Err((span, "Unexpected end of format string"));
+            }
+        } else if ch == '}' {
+            // in_format guaranteed to be false
+            if let Some(next) = chars.next() {
+                if next == '}' {
+                    cur.push(next);
+                } else {
+                    return Err((span, "Unmatched '}' in format string; did you forget to escape it as '}}'?"));
+                }
+            } else {
+                return Err((span, "Unexpected end of format string"));
+            }
+        } else {
+            cur.push(ch);
+        }
+    }
+    if !cur.is_empty() {
+        parts.push(if in_format { FormatPart::Input } else { FormatPart::Text }(cur));
+    }
+
+    Ok(FormatItems { span, parts })
 }
