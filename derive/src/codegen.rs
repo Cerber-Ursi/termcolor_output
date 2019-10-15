@@ -45,3 +45,13 @@ pub fn compile_error((start, error): CompileError) -> TokenStream {
     .into_iter()
     .collect()
 }
+
+pub fn closure_wrapper(writer: TokenStream, body: TokenStream) -> TokenStream {
+    vec![
+        tt!(Punct('|', Alone)),
+        tt!(Ident("writer", Span::call_site())),
+        tt!(Punct('|', Alone)),
+        tt!(Group(Brace, body)),
+        tt!(Group(Parenthesis, writer)),
+    ].into_iter().collect()
+}
