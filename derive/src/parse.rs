@@ -204,5 +204,54 @@ fn parse_format_string(input: TokenStream) -> Result<FormatItems> {
 }
 
 pub fn merge_items(format: FormatItems, input: Vec<InputItem>) -> Result<Vec<OutputItem>> {
-    unimplemented!();
+    let format_span = format.span;
+    let mut format = format.parts.into_iter();
+    let mut input = input.into_iter();
+    let mut output = vec![];
+    let mut cur_format = String::new();
+    let mut cur_items = vec![];
+    loop {
+        // We pull items from the input one at a time.
+        match input.next() {
+            // If we've got a control sequence, we must flush all aggregated raw output
+            // and then push the sequence itself.
+            Some(InputItem::Ctrl(ctrl)) => {
+                if !cur_format.is_empty() {
+                    output.push(OutputItem::Raw((
+                        cur_format.drain(..).collect(),
+                        cur_items.drain(..).collect(),
+                    )));
+                    output.push(OutputItem::Ctrl(ctrl));
+                }
+            }
+            // If this is normal item, we pull items from format string until we get the corresponding
+            // format specifier.
+            Some(InputItem::Raw(raw)) => loop {
+                match format.next() {
+                    Some(FormatPart::Input(ref s)) => cur_format.push_str(s),
+                    Some(FormatPart::Text(ref s)) => {
+                        cur_format.push_str(s);
+                        break;
+                    }
+                    None => {
+                        return Err((
+                            raw.into_iter().next().unwrap().span(),
+                            "Too many input parameters for this format string",
+                        ))
+                    }
+                }
+            },
+            // If the items vector is exhausted, well, we're either OK, or have too long format string.
+            None => match format.next() {
+                None => break,
+                Some(_) => {
+                    return Err((
+                        format_span,
+                        "Not enough input parameters for this format string",
+                    ))
+                }
+            },
+        }
+    }
+    Ok(output)
 }
