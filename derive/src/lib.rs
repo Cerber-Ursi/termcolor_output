@@ -20,6 +20,7 @@ pub fn colored_derive(input: TokenStream) -> TokenStream {
             format,
             rest,
         }) => {
+            eprintln!("{:?}", rest);
             let guard = guard(writer);
             unimplemented!();
         }

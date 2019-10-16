@@ -1,4 +1,4 @@
-use crate::{CompileError, FormatItems, FormatPart, InputItem, MacroInput};
+use crate::{CompileError, ControlSeq, FormatItems, FormatPart, InputItem, MacroInput};
 use proc_macro::{Span, TokenStream, TokenTree};
 
 fn wrong_input() -> CompileError {
@@ -47,7 +47,6 @@ pub fn parse_input(input: TokenStream) -> Result<MacroInput, CompileError> {
         }
     };
     let format = parse_format_string(format_token)?;
-    eprintln!("{:?}", format);
 
     Ok(MacroInput {
         writer,
@@ -88,7 +87,26 @@ fn classify_format_arg(input: TokenStream) -> Result<InputItem, CompileError> {
         )
     )?;
     match iter.next() {
-        Some(TokenTree::Punct(ref punct)) if punct.as_char() == '!' => unimplemented!(),
+        Some(TokenTree::Punct(ref punct)) if punct.as_char() == '!' => {
+            match iter.next() {
+                Some(TokenTree::Group(ref group)) => {
+                    let inner = match first.to_string().as_str() {
+                        "bold" => ControlSeq::Bold,
+                        "underline" => ControlSeq::Underline,
+                        "intense" => ControlSeq::Intense,
+                        "fg" => ControlSeq::Foreground,
+                        "bg" => ControlSeq::Background,
+                        "reset" => return Ok(InputItem::Ctrl(ControlSeq::Reset)),
+                        // well, maybe it is some external macro like `vec!` or `env!`
+                        _ => return Ok(InputItem::Raw(input)),
+                    };
+                    Ok(InputItem::Ctrl(inner(group.stream())))
+                },
+                // if it's something like the macro, but not quite, - let it error out after
+                // expanding
+                _ => Ok(InputItem::Raw(input)),
+            }
+        },
         _ => Ok(InputItem::Raw(input)),
     }
 }

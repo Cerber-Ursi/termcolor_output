@@ -61,7 +61,8 @@ pub fn guard(writer: TokenStream) -> TokenStream {
         tt!(Ident("mut", Span::call_site())),
         tt!(Ident("_", Span::call_site())),
         tt!(Punct('=', Alone)),
-        tt!(Ident("$crate", Span::call_site())),
+        tt!(Punct('$', Alone)),
+        tt!(Ident("crate", Span::call_site())),
         tt!(Punct(':', Joint)),
         tt!(Punct(':', Alone)),
         tt!(Group(
