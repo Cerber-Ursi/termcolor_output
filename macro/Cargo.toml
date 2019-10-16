@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 termcolor_output_impl = { path = "../derive" }
+termcolor = "1.0"
 
 [dev-dependencies]
 trybuild = "1.0"

@@ -1,4 +1,4 @@
-use crate::{CompileError, FormatItems, FormatPart, MacroInput};
+use crate::{CompileError, FormatItems, FormatPart, InputItem, MacroInput};
 use proc_macro::{Span, TokenStream, TokenTree};
 
 fn wrong_input() -> CompileError {
@@ -22,7 +22,7 @@ fn parse_wrapper(input: TokenStream) -> Result<TokenStream, CompileError> {
 }
 
 pub fn parse_input(input: TokenStream) -> Result<MacroInput, CompileError> {
-    let mut items = parse_tokens(parse_wrapper(input)?).into_iter();
+    let mut items = parse_tokens(parse_wrapper(input)?)?.into_iter();
     let writer = match items.next() {
         Some(f) => f,
         None => {
@@ -52,19 +52,23 @@ pub fn parse_input(input: TokenStream) -> Result<MacroInput, CompileError> {
     Ok(MacroInput {
         writer,
         format,
-        rest: items.collect(),
+        rest: items.map(classify_format_arg).collect::<Result<_, _>>()?,
     })
 }
 
-fn parse_tokens(input: TokenStream) -> Vec<TokenStream> {
+fn parse_tokens(input: TokenStream) -> Result<Vec<TokenStream>, CompileError> {
     let input = input.into_iter();
     let mut args = vec![];
     let mut cur = vec![];
     for tok in input {
         if let TokenTree::Punct(punct) = tok.clone() {
             if punct.as_char() == ',' {
-                args.push(cur.drain(..).collect());
-                continue;
+                if cur.is_empty() {
+                    return Err((punct.span(), "Unexpected ',', expected expression"));
+                } else {
+                    args.push(cur.drain(..).collect());
+                    continue;
+                }
             }
         }
         cur.push(tok);
@@ -72,7 +76,21 @@ fn parse_tokens(input: TokenStream) -> Vec<TokenStream> {
     if !cur.is_empty() {
         args.push(cur.into_iter().collect());
     }
-    args
+    Ok(args)
+}
+
+fn classify_format_arg(input: TokenStream) -> Result<InputItem, CompileError> {
+    let mut iter = input.clone().into_iter();
+    let first = iter.next().ok_or(
+        (
+            Span::call_site(),
+            concat!("Empty token stream in 'classify'; this is supposed to be unreachable. Please report this case to ", env!("CARGO_PKG_REPOSITORY"), "/issues") 
+        )
+    )?;
+    match iter.next() {
+        Some(TokenTree::Punct(ref punct)) if punct.as_char() == '!' => unimplemented!(),
+        _ => Ok(InputItem::Raw(input)),
+    }
 }
 
 fn parse_format_string(input: TokenStream) -> Result<FormatItems, CompileError> {
@@ -129,10 +147,10 @@ fn parse_format_string(input: TokenStream) -> Result<FormatItems, CompileError> 
                         cur.clear();
                     } else {
                         in_format = true;
-                    
-                    cur.clear();
-                    cur.push('{');
-                cur.push(next);
+
+                        cur.clear();
+                        cur.push('{');
+                        cur.push(next);
                     }
                 }
             } else {
@@ -144,7 +162,10 @@ fn parse_format_string(input: TokenStream) -> Result<FormatItems, CompileError> 
                 if next == '}' {
                     cur.push(next);
                 } else {
-                    return Err((span, "Unmatched '}' in format string; did you forget to escape it as '}}'?"));
+                    return Err((
+                        span,
+                        "Unmatched '}' in format string; did you forget to escape it as '}}'?",
+                    ));
                 }
             } else {
                 return Err((span, "Unexpected end of format string"));
@@ -154,7 +175,11 @@ fn parse_format_string(input: TokenStream) -> Result<FormatItems, CompileError> 
         }
     }
     if !cur.is_empty() {
-        parts.push(if in_format { FormatPart::Input } else { FormatPart::Text }(cur));
+        parts.push(if in_format {
+            FormatPart::Input
+        } else {
+            FormatPart::Text
+        }(cur));
     }
 
     Ok(FormatItems { span, parts })

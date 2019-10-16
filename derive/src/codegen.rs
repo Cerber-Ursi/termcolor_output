@@ -2,7 +2,7 @@ use proc_macro::{
     Delimiter::*, Group, Ident, Literal, Punct, Spacing::*, Span, TokenStream, TokenTree,
 };
 
-use crate::CompileError;
+use crate::{CompileError, ControlSeq};
 
 macro_rules! tt {
     (Literal::$ty:tt($($args:expr),*)) => {
@@ -11,6 +11,12 @@ macro_rules! tt {
     ($ty:tt($($args:expr),*)) => {
         TokenTree::$ty($ty::new($($args),*))
     };
+}
+
+macro_rules! ts {
+    ($($tok:tt)+) => {
+        vec![$($tok)+].into_iter().collect()
+    }
 }
 
 pub fn macro_wrapper(body: TokenStream) -> TokenStream {
@@ -46,12 +52,29 @@ pub fn compile_error((start, error): CompileError) -> TokenStream {
     .collect()
 }
 
-pub fn closure_wrapper(writer: TokenStream, body: TokenStream) -> TokenStream {
-    vec![
-        tt!(Punct('|', Alone)),
-        tt!(Ident("writer", Span::call_site())),
-        tt!(Punct('|', Alone)),
-        tt!(Group(Brace, body)),
-        tt!(Group(Parenthesis, writer)),
-    ].into_iter().collect()
+pub fn guard(writer: TokenStream) -> TokenStream {
+    ts!(
+        tt!(Ident("let", Span::call_site())),
+        tt!(Ident("__writer__", Span::call_site())),
+        tt!(Punct(':', Alone)),
+        tt!(Punct('&', Alone)),
+        tt!(Ident("mut", Span::call_site())),
+        tt!(Ident("_", Span::call_site())),
+        tt!(Punct('=', Alone)),
+        tt!(Ident("$crate", Span::call_site())),
+        tt!(Punct(':', Joint)),
+        tt!(Punct(':', Alone)),
+        tt!(Group(
+            Parenthesis,
+            vec![tt!(Punct('&', Alone)), tt!(Ident("mut", Span::call_site())),]
+                .into_iter()
+                .chain(writer.into_iter())
+                .collect()
+        )),
+        tt!(Punct(';', Alone)),
+    )
+}
+
+pub fn control(seq: ControlSeq) -> Result<TokenStream, CompileError> {
+    unimplemented!();
 }

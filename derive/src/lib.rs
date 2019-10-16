@@ -3,8 +3,8 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 
 mod codegen;
-mod types;
 mod parse;
+mod types;
 
 use types::*;
 
@@ -15,7 +15,14 @@ use parse::parse_input;
 pub fn colored_derive(input: TokenStream) -> TokenStream {
     let input = parse_input(input);
     match input {
-        Ok(_) => unimplemented!(),
+        Ok(MacroInput {
+            writer,
+            format,
+            rest,
+        }) => {
+            let guard = guard(writer);
+            unimplemented!();
+        }
         Err(body) => macro_wrapper(compile_error(body)),
     }
 }

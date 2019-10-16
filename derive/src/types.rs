@@ -18,5 +18,21 @@ pub struct FormatItems {
 pub struct MacroInput {
     pub writer: TokenStream,
     pub format: FormatItems,
-    pub rest: Vec<TokenStream>,
+    pub rest: Vec<InputItem>,
+}
+
+#[derive(Debug)]
+pub enum InputItem {
+    Raw(TokenStream),
+    Ctrl(ControlSeq),
+}
+
+#[derive(Debug)]
+pub enum ControlSeq {
+    Foreground(TokenStream),
+    Background(TokenStream),
+    Bold(TokenStream),
+    Underline(TokenStream),
+    Intense(TokenStream),
+    Reset,
 }
