@@ -14,9 +14,10 @@ macro_rules! tt {
 }
 
 macro_rules! ts {
+    () => { TokenStream::new() };
     ($($tok:tt)+) => {
         vec![$($tok)+].into_iter().collect()
-    }
+    };
 }
 
 pub fn macro_wrapper(body: TokenStream) -> TokenStream {
@@ -88,5 +89,18 @@ fn raw(entry: RawOutput) -> Result<TokenStream> {
 }
 
 fn control(seq: ControlSeq) -> Result<TokenStream> {
-    unimplemented!();
+    let (cmd, param) = match seq {
+        ControlSeq::Reset => (tt!(Ident("reset", Span::call_site())), ts!()),
+        ControlSeq::Foreground(_) => unimplemented!(),
+        ControlSeq::Background(_) => unimplemented!(),
+        ControlSeq::Bold(_) => unimplemented!(),
+        ControlSeq::Underline(_) => unimplemented!(),
+        ControlSeq::Intense(_) => unimplemented!(),
+    };
+    Ok(ts!(
+        tt!(Ident("__writer__", Span::call_site())),
+        tt!(Punct('.', Alone)),
+        cmd,
+        tt!(Group(Parenthesis, param))
+    ))
 }
