@@ -1,6 +1,7 @@
 use proc_macro::{Span, TokenStream};
 
 pub type CompileError = (Span, &'static str);
+pub type Result<T> = std::result::Result<T, CompileError>;
 
 #[derive(Debug)]
 pub enum FormatPart {
@@ -35,4 +36,12 @@ pub enum ControlSeq {
     Underline(TokenStream),
     Intense(TokenStream),
     Reset,
+}
+
+pub type RawOutput = (String, Vec<TokenStream>);
+
+#[derive(Debug)]
+pub enum OutputItem {
+    Raw(RawOutput),
+    Ctrl(ControlSeq),
 }

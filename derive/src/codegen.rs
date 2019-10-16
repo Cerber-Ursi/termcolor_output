@@ -2,7 +2,7 @@ use proc_macro::{
     Delimiter::*, Group, Ident, Literal, Punct, Spacing::*, Span, TokenStream, TokenTree,
 };
 
-use crate::{CompileError, ControlSeq};
+use crate::*;
 
 macro_rules! tt {
     (Literal::$ty:tt($($args:expr),*)) => {
@@ -76,6 +76,17 @@ pub fn guard(writer: TokenStream) -> TokenStream {
     )
 }
 
-pub fn control(seq: ControlSeq) -> Result<TokenStream, CompileError> {
+pub fn output(entry: OutputItem) -> Result<TokenStream> {
+    match entry {
+        OutputItem::Ctrl(seq) => control(seq),
+        OutputItem::Raw(entry) => raw(entry),
+    }
+}
+
+fn raw(entry: RawOutput) -> Result<TokenStream> {
+    unimplemented!();
+}
+
+fn control(seq: ControlSeq) -> Result<TokenStream> {
     unimplemented!();
 }

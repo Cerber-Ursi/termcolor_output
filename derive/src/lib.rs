@@ -6,24 +6,30 @@ mod codegen;
 mod parse;
 mod types;
 
-use types::*;
-
 use codegen::*;
-use parse::parse_input;
+use parse::*;
+use types::*;
 
 #[proc_macro_derive(ColoredOutput)]
 pub fn colored_derive(input: TokenStream) -> TokenStream {
-    let input = parse_input(input);
-    match input {
-        Ok(MacroInput {
-            writer,
-            format,
-            rest,
-        }) => {
-            eprintln!("{:?}", rest);
-            let guard = guard(writer);
-            unimplemented!();
-        }
-        Err(body) => macro_wrapper(compile_error(body)),
-    }
+    let body = parse_input(input)
+        .and_then(|input| {
+            let MacroInput {
+                writer,
+                format,
+                rest,
+            } = input;
+
+            let output_items = merge_items(format, rest)?
+                .into_iter()
+                .map(output)
+                .collect::<Result<Vec<_>>>()?;
+
+            Ok(guard(writer)
+                .into_iter()
+                .chain(output_items.into_iter().flat_map(TokenStream::into_iter))
+                .collect())
+        })
+        .unwrap_or_else(|err| compile_error(err));
+    macro_wrapper(body)
 }

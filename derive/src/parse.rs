@@ -1,4 +1,4 @@
-use crate::{CompileError, ControlSeq, FormatItems, FormatPart, InputItem, MacroInput};
+use crate::*;
 use proc_macro::{Span, TokenStream, TokenTree};
 
 fn wrong_input() -> CompileError {
@@ -8,7 +8,7 @@ fn wrong_input() -> CompileError {
     )
 }
 /// Parse input, assuming that it has the known form.
-fn parse_wrapper(input: TokenStream) -> Result<TokenStream, CompileError> {
+fn parse_wrapper(input: TokenStream) -> Result<TokenStream> {
     match input.into_iter().nth(2) {
         Some(TokenTree::Group(group)) => match group.stream().into_iter().nth(2) {
             Some(TokenTree::Group(group)) => match group.stream().into_iter().nth(2) {
@@ -21,7 +21,7 @@ fn parse_wrapper(input: TokenStream) -> Result<TokenStream, CompileError> {
     }
 }
 
-pub fn parse_input(input: TokenStream) -> Result<MacroInput, CompileError> {
+pub fn parse_input(input: TokenStream) -> Result<MacroInput> {
     let mut items = parse_tokens(parse_wrapper(input)?)?.into_iter();
     let writer = match items.next() {
         Some(f) => f,
@@ -51,11 +51,11 @@ pub fn parse_input(input: TokenStream) -> Result<MacroInput, CompileError> {
     Ok(MacroInput {
         writer,
         format,
-        rest: items.map(classify_format_arg).collect::<Result<_, _>>()?,
+        rest: items.map(classify_format_arg).collect::<Result<_>>()?,
     })
 }
 
-fn parse_tokens(input: TokenStream) -> Result<Vec<TokenStream>, CompileError> {
+fn parse_tokens(input: TokenStream) -> Result<Vec<TokenStream>> {
     let input = input.into_iter();
     let mut args = vec![];
     let mut cur = vec![];
@@ -78,7 +78,7 @@ fn parse_tokens(input: TokenStream) -> Result<Vec<TokenStream>, CompileError> {
     Ok(args)
 }
 
-fn classify_format_arg(input: TokenStream) -> Result<InputItem, CompileError> {
+fn classify_format_arg(input: TokenStream) -> Result<InputItem> {
     let mut iter = input.clone().into_iter();
     let first = iter.next().ok_or(
         (
@@ -101,17 +101,17 @@ fn classify_format_arg(input: TokenStream) -> Result<InputItem, CompileError> {
                         _ => return Ok(InputItem::Raw(input)),
                     };
                     Ok(InputItem::Ctrl(inner(group.stream())))
-                },
+                }
                 // if it's something like the macro, but not quite, - let it error out after
                 // expanding
                 _ => Ok(InputItem::Raw(input)),
             }
-        },
+        }
         _ => Ok(InputItem::Raw(input)),
     }
 }
 
-fn parse_format_string(input: TokenStream) -> Result<FormatItems, CompileError> {
+fn parse_format_string(input: TokenStream) -> Result<FormatItems> {
     let mut input = input.into_iter();
     let format_token = match input.next() {
         Some(tok) => tok,
@@ -143,7 +143,7 @@ fn parse_format_string(input: TokenStream) -> Result<FormatItems, CompileError> 
     let format = format.trim_matches('"');
 
     let mut parts = vec![];
-    // this will usually overallocate, but the format string isn't going to be large anyway
+    // this will usually over-allocate, but the format string isn't going to be large anyway
     let mut cur = String::with_capacity(format.len());
     let mut in_format = false;
     let mut chars = format.chars();
@@ -201,4 +201,8 @@ fn parse_format_string(input: TokenStream) -> Result<FormatItems, CompileError> 
     }
 
     Ok(FormatItems { span, parts })
+}
+
+pub fn merge_items(format: FormatItems, input: Vec<InputItem>) -> Result<Vec<OutputItem>> {
+    unimplemented!();
 }
