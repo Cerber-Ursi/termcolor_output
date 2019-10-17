@@ -1,0 +1,5 @@
+error: Not enough input parameters for this format string
+ --> $DIR/not_a_writer.rs:5:28
+  |
+5 |     colored!(not_a_writer, "test");
+  |                            ^^^^^^^^^^^^^^^^^^

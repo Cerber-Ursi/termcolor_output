@@ -24,36 +24,63 @@ macro_rules! ts {
 }
 
 pub fn macro_wrapper(body: TokenStream) -> TokenStream {
-    vec![
+    ts![
         tt!(Ident("macro_rules", Span::call_site())),
         tt!(Punct('!', Alone)),
         tt!(Ident("colored_impl", Span::call_site())),
         tt!(Group(
             Brace,
-            vec![
+            ts![
                 tt!(Group(Parenthesis, TokenStream::new())),
                 tt!(Punct('=', Joint)),
                 tt!(Punct('>', Alone)),
                 tt!(Group(Brace, body))
             ]
-            .into_iter()
-            .collect()
         )),
     ]
-    .into_iter()
-    .collect()
+}
+
+pub fn closure_wrapper(body: TokenStream) -> TokenStream {
+    ts!(
+        tt!(Punct('|', Alone)),
+        tt!(Punct('|', Alone)),
+        tt!(Punct('-', Joint)),
+        tt!(Punct('>', Alone)),
+        tt!(Ident("std", Span::call_site())),
+        tt!(Punct(':', Joint)),
+        tt!(Punct(':', Alone)),
+        tt!(Ident("io", Span::call_site())),
+        tt!(Punct(':', Joint)),
+        tt!(Punct(':', Alone)),
+        tt!(Ident("Result", Span::call_site())),
+        tt!(Punct('<', Alone)),
+        tt!(Group(Parenthesis, ts!())),
+        tt!(Punct('>', Alone)),
+        tt!(Group(
+            Brace,
+            body.into_iter()
+                .chain(
+                    vec![
+                        tt!(Ident("Ok", Span::call_site())),
+                        tt!(Group(Parenthesis, ts!(tt!(Group(Parenthesis, ts!())))))
+                    ]
+                    .into_iter()
+                )
+                .collect()
+        )),
+        tt!(Group(Parenthesis, ts!())),
+    )
 }
 
 pub fn compile_error((start, error): CompileError) -> TokenStream {
     let mut inner = tt!(Literal::string(error));
     inner.set_span(start);
-    vec![
+    ts!(
         tt!(Ident("compile_error", start)),
         tt!(Punct('!', Alone)),
         tt!(Group(Parenthesis, vec![inner].into_iter().collect())),
-    ]
-    .into_iter()
-    .collect()
+        tt!(Punct(';', Alone)),
+    )
 }
 
 pub fn guard(writer: TokenStream) -> TokenStream {
@@ -136,6 +163,7 @@ fn control(seq: ControlSeq) -> TokenStream {
             tt!(Punct('&', Alone)),
             tt!(Ident("__spec__", Span::call_site()))
         ))),
+        tt!(Punct('?', Alone)),
         tt!(Punct(';', Alone)),
     );
     head.into_iter()

@@ -1,0 +1,7 @@
+error: colored! macro can't be called without arguments
+ --> $DIR/no_args.rs:4:5
+  |
+4 |     colored!();
+  |     ^^^^^^^^^^^
+  |
+  = note: this error originates in a macro outside of the current crate (in Nightly builds, run with -Z external-macro-backtrace for more info)

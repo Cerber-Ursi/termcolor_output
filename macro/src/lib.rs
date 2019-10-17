@@ -14,6 +14,6 @@ macro_rules! colored {
         enum __Writer {
             data = (stringify!($($arg)*), 0).1
         }
-        colored_impl!();
+        colored_impl!()
     }}
 }
