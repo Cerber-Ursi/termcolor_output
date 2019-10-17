@@ -9,6 +9,7 @@ pub fn guard(w: &mut impl termcolor::WriteColor) -> &mut impl termcolor::WriteCo
 macro_rules! colored {
     ($($arg:tt)*) => {{
         use termcolor_output_impl::ColoredOutput;
+        use termcolor::WriteColor;
         #[derive(ColoredOutput)]
         enum __Writer {
             data = (stringify!($($arg)*), 0).1

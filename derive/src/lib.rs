@@ -27,9 +27,11 @@ pub fn colored_derive(input: TokenStream) -> TokenStream {
 
             Ok(guard(writer)
                 .into_iter()
+                .chain(spec_init().into_iter())
                 .chain(output_items.into_iter().flat_map(TokenStream::into_iter))
                 .collect())
         })
         .unwrap_or_else(|err| compile_error(err));
+    eprintln!("{}", proc_macro2::TokenStream::from(body.clone()));
     macro_wrapper(body)
 }

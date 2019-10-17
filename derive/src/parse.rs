@@ -91,16 +91,12 @@ fn classify_format_arg(input: TokenStream) -> Result<InputItem> {
             match iter.next() {
                 Some(TokenTree::Group(ref group)) => {
                     let inner = match first.to_string().as_str() {
-                        "bold" => ControlSeq::Bold,
-                        "underline" => ControlSeq::Underline,
-                        "intense" => ControlSeq::Intense,
-                        "fg" => ControlSeq::Foreground,
-                        "bg" => ControlSeq::Background,
-                        "reset" => return Ok(InputItem::Ctrl(ControlSeq::Reset)),
+                        x if is_format_control(x) => ControlSeq::Command(x.into(), group.stream()),
+                        "reset" => ControlSeq::Reset,
                         // well, maybe it is some external macro like `vec!` or `env!`
                         _ => return Ok(InputItem::Raw(input)),
                     };
-                    Ok(InputItem::Ctrl(inner(group.stream())))
+                    Ok(InputItem::Ctrl(inner))
                 }
                 // if it's something like the macro, but not quite, - let it error out after
                 // expanding
@@ -109,6 +105,10 @@ fn classify_format_arg(input: TokenStream) -> Result<InputItem> {
         }
         _ => Ok(InputItem::Raw(input)),
     }
+}
+
+fn is_format_control(s: &str) -> bool {
+    s == "bold" || s == "underline" || s == "intense" || s == "fg" || s == "bg"
 }
 
 fn parse_format_string(input: TokenStream) -> Result<FormatItems> {
@@ -158,7 +158,9 @@ fn parse_format_string(input: TokenStream) -> Result<FormatItems> {
                 if next == '{' {
                     cur.push(next);
                 } else {
-                    parts.push(FormatPart::Text(cur.clone()));
+                    if !cur.is_empty() {
+                        parts.push(FormatPart::Text(cur.clone()));
+                    }
                     if next == '}' {
                         // special case, handled right here
                         parts.push(FormatPart::Input("{}".into()));

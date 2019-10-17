@@ -30,11 +30,7 @@ pub enum InputItem {
 
 #[derive(Debug)]
 pub enum ControlSeq {
-    Foreground(TokenStream),
-    Background(TokenStream),
-    Bold(TokenStream),
-    Underline(TokenStream),
-    Intense(TokenStream),
+    Command(String, TokenStream),
     Reset,
 }
 
