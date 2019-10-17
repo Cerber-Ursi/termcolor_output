@@ -216,6 +216,7 @@ pub fn merge_items(format: FormatItems, input: Vec<InputItem>) -> Result<Vec<Out
             // If we've got a control sequence, we must flush all aggregated raw output
             // and then push the sequence itself.
             Some(InputItem::Ctrl(ctrl)) => {
+                pull_format(&mut format, &mut cur_format, Span::call_site())?;
                 if !cur_format.is_empty() {
                     output.push(OutputItem::Raw((
                         cur_format.drain(..).collect(),
@@ -226,24 +227,25 @@ pub fn merge_items(format: FormatItems, input: Vec<InputItem>) -> Result<Vec<Out
             }
             // If this is normal item, we pull items from format string until we get the corresponding
             // format specifier.
-            Some(InputItem::Raw(raw)) => loop {
-                match format.next() {
-                    Some(FormatPart::Input(ref s)) => cur_format.push_str(s),
-                    Some(FormatPart::Text(ref s)) => {
-                        cur_format.push_str(s);
-                        break;
-                    }
-                    None => {
-                        return Err((
-                            raw.into_iter().next().unwrap().span(),
-                            "Too many input parameters for this format string",
-                        ))
-                    }
-                }
-            },
+            Some(InputItem::Raw(raw)) => {
+                let part = pull_format(
+                    &mut format,
+                    &mut cur_format,
+                    raw.into_iter().next().unwrap().span(),
+                )?;
+                cur_format.push_str(&part);
+            }
             // If the items vector is exhausted, well, we're either OK, or have too long format string.
             None => match format.next() {
-                None => break,
+                None => {
+                    if !cur_format.is_empty() {
+                        output.push(OutputItem::Raw((
+                            cur_format.drain(..).collect(),
+                            cur_items.drain(..).collect(),
+                        )));
+                    }
+                    break;
+                }
                 Some(_) => {
                     return Err((
                         format_span,
@@ -254,4 +256,24 @@ pub fn merge_items(format: FormatItems, input: Vec<InputItem>) -> Result<Vec<Out
         }
     }
     Ok(output)
+}
+
+fn pull_format(
+    format: &mut impl Iterator<Item = FormatPart>,
+    cur_format: &mut String,
+    span: Span,
+) -> Result<String> {
+    loop {
+        match format.next() {
+            Some(FormatPart::Input(s)) => {
+                return Ok(s);
+            }
+            Some(FormatPart::Text(ref s)) => {
+                cur_format.push_str(s);
+            }
+            None => {
+                return Err((span, "Too many input parameters for this format string"));
+            }
+        }
+    }
 }
