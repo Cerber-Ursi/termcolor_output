@@ -1,0 +1,5 @@
+error: Too many input parameters for this format string
+ --> $DIR/too_many.rs:6:27
+  |
+6 |     match colored!(w, "", Some(()), vec![1u8]) {
+  |                           ^^^^^^^^

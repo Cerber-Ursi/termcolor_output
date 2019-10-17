@@ -1,0 +1,37 @@
+warning: unused import: `Color`
+ --> $DIR/wrong_types_args.rs:1:17
+  |
+1 | use termcolor::{Color, NoColor};
+  |                 ^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+error[E0277]: `std::option::Option<()>` doesn't implement `std::fmt::Display`
+ --> $DIR/wrong_types_args.rs:8:35
+  |
+8 |     match colored!(w, "{}{}{:?}", Some(()), vec![1u8], NonDebuggable) {
+  |                                   ^^^^^^^^ `std::option::Option<()>` cannot be formatted with the default formatter
+  |
+  = help: the trait `std::fmt::Display` is not implemented for `std::option::Option<()>`
+  = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+  = note: required by `std::fmt::Display::fmt`
+
+error[E0277]: `std::vec::Vec<u8>` doesn't implement `std::fmt::Display`
+ --> $DIR/wrong_types_args.rs:8:45
+  |
+8 |     match colored!(w, "{}{}{:?}", Some(()), vec![1u8], NonDebuggable) {
+  |                                             ^^^^^^^^^ `std::vec::Vec<u8>` cannot be formatted with the default formatter
+  |
+  = help: the trait `std::fmt::Display` is not implemented for `std::vec::Vec<u8>`
+  = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+  = note: required by `std::fmt::Display::fmt`
+
+error[E0277]: `NonDebuggable` doesn't implement `std::fmt::Debug`
+ --> $DIR/wrong_types_args.rs:8:56
+  |
+8 |     match colored!(w, "{}{}{:?}", Some(()), vec![1u8], NonDebuggable) {
+  |                                                        ^^^^^^^^^^^^^ `NonDebuggable` cannot be formatted using `{:?}`
+  |
+  = help: the trait `std::fmt::Debug` is not implemented for `NonDebuggable`
+  = note: add `#[derive(Debug)]` or manually implement `std::fmt::Debug`
+  = note: required by `std::fmt::Debug::fmt`

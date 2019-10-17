@@ -47,7 +47,7 @@ pub fn parse_input(input: TokenStream) -> Result<MacroInput> {
                 } else {
                     "colored! macro requires at least two arguments - writer and format string"
                 },
-            ))
+            ));
         }
     };
     let format = parse_format_string(format_token)?;
@@ -67,7 +67,11 @@ fn parse_tokens(input: TokenStream) -> Result<Vec<TokenStream>> {
         if let TokenTree::Punct(punct) = tok.clone() {
             if punct.as_char() == ',' {
                 if cur.is_empty() {
-                    return Err((punct.span(), punct.span(), "Unexpected ',', expected expression"));
+                    return Err((
+                        punct.span(),
+                        punct.span(),
+                        "Unexpected ',', expected expression",
+                    ));
                 } else {
                     args.push(cur.drain(..).collect());
                     continue;
@@ -126,7 +130,7 @@ fn parse_format_string(input: TokenStream) -> Result<FormatItems> {
                 Span::call_site(),
                 Span::call_site(),
                 "Expected format string, got empty stream",
-            ))
+            ));
         }
     };
     match input.next() {
@@ -227,18 +231,20 @@ pub fn merge_items(format: FormatItems, input: Vec<InputItem>) -> Result<Vec<Out
             // If we've got a control sequence, we must flush all aggregated raw output
             // and then push the sequence itself.
             Some(InputItem::Ctrl(ctrl)) => {
-                pull_format(&mut format, &mut cur_format, Span::call_site())?;
+                // TODO - carry spans with Ctrl?
+                pull_format(&mut format, &mut cur_format, Span::call_site(), Span::call_site())?;
                 flush(&mut cur_format, &mut cur_items, &mut output);
                 output.push(OutputItem::Ctrl(ctrl));
             }
             // If this is normal item, we pull items from format string until we get the corresponding
             // format specifier.
             Some(InputItem::Raw(raw)) => {
-                let part = pull_format(
-                    &mut format,
-                    &mut cur_format,
-                    raw.clone().into_iter().next().unwrap().span(),
-                )?;
+                let mut iter = raw.clone().into_iter();
+                let start = iter
+                    .next()
+                    .map_or(Span::call_site(), |t| TokenTree::span(&t));
+                let end = iter.last().map_or(start, |t| TokenTree::span(&t));
+                let part = pull_format(&mut format, &mut cur_format, start, end)?;
                 cur_format.push_str(&part);
                 cur_items.push(raw);
             }
@@ -273,7 +279,8 @@ fn flush(format: &mut String, items: &mut Vec<TokenStream>, output: &mut Vec<Out
 fn pull_format(
     format: &mut impl Iterator<Item = FormatPart>,
     cur_format: &mut String,
-    span: Span,
+    start: Span,
+    end: Span,
 ) -> Result<String> {
     loop {
         match format.next() {
@@ -284,7 +291,11 @@ fn pull_format(
                 cur_format.push_str(s);
             }
             None => {
-                return Err((span, span, "Too many input parameters for this format string"));
+                return Err((
+                    start,
+                    end,
+                    "Too many input parameters for this format string",
+                ));
             }
         }
     }
