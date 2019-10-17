@@ -217,13 +217,8 @@ pub fn merge_items(format: FormatItems, input: Vec<InputItem>) -> Result<Vec<Out
             // and then push the sequence itself.
             Some(InputItem::Ctrl(ctrl)) => {
                 pull_format(&mut format, &mut cur_format, Span::call_site())?;
-                if !cur_format.is_empty() {
-                    output.push(OutputItem::Raw((
-                        cur_format.drain(..).collect(),
-                        cur_items.drain(..).collect(),
-                    )));
-                    output.push(OutputItem::Ctrl(ctrl));
-                }
+                flush(&mut cur_format, &mut cur_items, &mut output);
+                output.push(OutputItem::Ctrl(ctrl));
             }
             // If this is normal item, we pull items from format string until we get the corresponding
             // format specifier.
@@ -231,19 +226,15 @@ pub fn merge_items(format: FormatItems, input: Vec<InputItem>) -> Result<Vec<Out
                 let part = pull_format(
                     &mut format,
                     &mut cur_format,
-                    raw.into_iter().next().unwrap().span(),
+                    raw.clone().into_iter().next().unwrap().span(),
                 )?;
                 cur_format.push_str(&part);
+                cur_items.push(raw);
             }
             // If the items vector is exhausted, well, we're either OK, or have too long format string.
             None => match format.next() {
                 None => {
-                    if !cur_format.is_empty() {
-                        output.push(OutputItem::Raw((
-                            cur_format.drain(..).collect(),
-                            cur_items.drain(..).collect(),
-                        )));
-                    }
+                    flush(&mut cur_format, &mut cur_items, &mut output);
                     break;
                 }
                 Some(_) => {
@@ -256,6 +247,15 @@ pub fn merge_items(format: FormatItems, input: Vec<InputItem>) -> Result<Vec<Out
         }
     }
     Ok(output)
+}
+
+fn flush(format: &mut String, items: &mut Vec<TokenStream>, output: &mut Vec<OutputItem>) {
+    if !format.is_empty() {
+        output.push(OutputItem::Raw((
+            format.drain(..).collect(),
+            items.drain(..).collect(),
+        )));
+    }
 }
 
 fn pull_format(
