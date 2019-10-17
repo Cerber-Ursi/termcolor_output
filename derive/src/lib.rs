@@ -1,3 +1,9 @@
+//! Procedural macro crate for [termcolor_output].
+//! 
+//! Please do not depend on this crate directly.
+//! 
+//! [termcolor_output]: http://docs.rs/termcolor_output
+
 extern crate proc_macro;
 
 use proc_macro::TokenStream;
