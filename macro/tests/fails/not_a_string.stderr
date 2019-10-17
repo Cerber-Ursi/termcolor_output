@@ -1,7 +1,5 @@
 error: The second argument must be a literal string
  --> $DIR/not_a_string.rs:6:27
   |
-5 | |     let not_a_string = 0u32;
-  | |_____________________________________________^
-6 |       colored!(&mut writer, not_a_string);
-  |  ___________________________^
+6 |     colored!(&mut writer, not_a_string);
+  |                           ^^^^^^^^^^^^

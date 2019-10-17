@@ -72,15 +72,19 @@ pub fn closure_wrapper(body: TokenStream) -> TokenStream {
     )
 }
 
-pub fn compile_error((start, error): CompileError) -> TokenStream {
-    let mut inner = tt!(Literal::string(error));
-    inner.set_span(start);
-    ts!(
+pub fn compile_error((start, end, error): CompileError) -> TokenStream {
+    let mut bang = Punct::new('!', Alone);
+    bang.set_span(start);
+    let mut inner = Group::new(Parenthesis, ts!(tt!(Literal::string(error))));
+    inner.set_span(end);
+    let mut semi = Punct::new(';', Alone);
+    semi.set_span(end);
+    vec![
         tt!(Ident("compile_error", start)),
-        tt!(Punct('!', Alone)),
-        tt!(Group(Parenthesis, vec![inner].into_iter().collect())),
-        tt!(Punct(';', Alone)),
-    )
+        TokenTree::Punct(bang),
+        TokenTree::Group(inner),
+        TokenTree::Punct(semi),
+    ].into_iter().collect()
 }
 
 pub fn guard(writer: TokenStream) -> TokenStream {
@@ -126,16 +130,34 @@ pub fn spec_init() -> TokenStream {
     )
 }
 
-pub fn output(entry: OutputItem) -> Result<TokenStream> {
+pub fn output(entry: OutputItem) -> TokenStream {
     match entry {
-        OutputItem::Ctrl(seq) => Ok(control(seq)),
+        OutputItem::Ctrl(seq) => control(seq),
         OutputItem::Raw(entry) => raw(entry),
     }
 }
 
-fn raw(entry: RawOutput) -> Result<TokenStream> {
-    eprintln!("{:?}", entry);
-    unimplemented!();
+fn raw(entry: RawOutput) -> TokenStream {
+    use std::iter::once;
+    let (fmt, items) = entry;
+    let inner = vec![
+        tt!(Ident("__writer__", Span::call_site())),
+        tt!(Punct(',', Alone)),
+        tt!(Literal::string(&fmt)),
+    ].into_iter()
+        .chain(
+            items
+                .into_iter()
+                .flat_map(|stream| once(tt!(Punct(',', Alone))).chain(stream.into_iter())),
+        )
+        .collect();
+    ts!(
+        tt!(Ident("write", Span::call_site())),
+        tt!(Punct('!', Alone)),
+        tt!(Group(Parenthesis, inner)),
+        tt!(Punct('?', Alone)),
+        tt!(Punct(';', Alone)),
+    )
 }
 
 fn control(seq: ControlSeq) -> TokenStream {

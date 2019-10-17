@@ -1,6 +1,6 @@
 use proc_macro::{Span, TokenStream};
 
-pub type CompileError = (Span, &'static str);
+pub type CompileError = (Span, Span, &'static str);
 pub type Result<T> = std::result::Result<T, CompileError>;
 
 #[derive(Debug)]

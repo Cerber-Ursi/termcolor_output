@@ -1,5 +1,5 @@
-use termcolor_output::colored;
 use termcolor::{Color, NoColor};
+use termcolor_output::colored;
 
 fn main() {
     let mut w: NoColor<Vec<u8>> = NoColor::new(vec![]);
@@ -14,7 +14,7 @@ fn main() {
         reset!(),
         intense!(true)
     ) {
-        Ok(_) => {},
-        Err(_) => {},
+        Ok(_) => {}
+        Err(_) => {}
     };
 }
