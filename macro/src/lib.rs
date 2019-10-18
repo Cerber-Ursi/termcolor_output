@@ -20,12 +20,39 @@
 
 trait ColoredOutput {}
 
-#[doc(hidden)]
-pub fn guard(w: &mut impl termcolor::WriteColor) -> &mut impl termcolor::WriteColor {
-    w
-}
-
-#[doc(hidden)]
+/// Extension trait for [`WriteColor`] instances. 
+///
+/// This trait is not intended for public use. Its only purpose is to allow us check if the
+/// provided value implements [`WriteColor`] in an ergonomic way, without consuming the value if
+/// unnecessary, and it is used internally by the [`colored`] macro.
+///
+/// You'll probably see this trait only in type errors, if the first argument to the macro appears
+/// to be of the wrong type. 
+///
+/// ## Example
+///
+/// ```compile_fail
+/// use termcolor_output::colored;
+/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// colored!(0u8, "This won't be written")?;
+/// # Ok(())
+/// # }
+/// ```
+///
+/// This example yields the following error:
+/// ```text
+/// error[E0599]: no method named `guard` found for type `u8` in the current scope
+///  --> src/lib.rs:37:1
+///    |
+///  5 | colored!(0u8, "This won't be written")?;
+///    |          ^^^                          
+///    |
+///    = note: the method `guard` exists but the following trait bounds were not satisfied:
+///                    `u8 : termcolor_output::WriteColorGuard`
+/// ```
+///
+/// [`WriteColor`]: https://docs.rs/termcolor/1.0.5/termcolor/trait.WriteColor.html
+/// [`colored`]: colored
 pub trait WriteColorGuard {
     fn guard(&mut self) -> &mut Self {
         self
@@ -33,25 +60,92 @@ pub trait WriteColorGuard {
 }
 impl<T: termcolor::WriteColor> WriteColorGuard for T {} 
 
+#[doc(hidden)]
+pub use std;
+#[doc(hidden)]
+pub use termcolor;
+#[doc(hidden)]
+pub use termcolor_output_impl;
+
 /// The macro writing colored text.
 /// 
-/// Like the standard [`write!`] macro, it takes the writer, 
+/// Like the standard [`write!`] macro, it takes the writer, format string and the sequence of
+/// arguments. The arguments may be either formattable with the corresponding formatter (`Display`
+/// for `{}`, `Debug` for `{:?}`, etc.), or the _control sequences_, which are written in
+/// macro-like style:
+/// - `reset!()` yields call to [`ColorSpec::clear`][termcolor::ColorSpec::clear];
+/// - `fg!(color)`, `bg!(color)`, `bold!(bool)`, `underline!(bool)` and `intense!(bool)` are
+/// translated into corresponding `ColorSpec::set_*` calls with the provided arguments.
 /// 
+/// Internally, this expands to the following:
+/// - imports of all necessary traits;
+/// - call to the `guard` method on the [`WriteColorGuard`] trait (as a sanity check);
+/// - an immediately called closure, containing:
+///   - creation of `ColorSpec`;
+///   - calls to `write!` for every formattable input;
+///   - updates for `ColorSpec` for every control sequence.
+/// Every error generated inside the closure is returned early and yielded by the macro as an
+/// [`std::io::Result<()>`].
+///
+/// When the arguments list is malformed, macro generates a compile error trying to point on the
+/// exact origin.
+///
 /// ## Examples
 /// 
 /// Simple formatting is provided in exactly the same way as for standard writes:
 /// ```
-/// use termcolor_output::colored;
-/// fn write_simple(writer: &mut impl termcolor::WriteColor) {
-///     colored!(writer, "This text is {} styled", "not").unwrap();
-/// }
+/// # use termcolor_output::colored;
+/// # fn write(writer: &mut impl termcolor::WriteColor) {
+/// colored!(writer, "This text is {} styled", "not").unwrap();
+/// # }
 /// ```
+///
+/// Styled formatting is provided by using any formatter argument in format string, wherever you
+/// need to apply the style:
+/// ```
+/// # use termcolor_output::colored;
+/// # fn write(writer: &mut impl termcolor::WriteColor) {
+/// # use termcolor::Color;
+/// colored!(writer, "This text is not styled\n{}And this is colored", fg!(Some(Color::Blue))).unwrap();
+/// # }
+/// ```
+///
+/// You can chain several styling commands by specifying several formatter arguments without text
+/// between them:
+/// ```
+/// # use termcolor_output::colored;
+/// # fn write(writer: &mut impl termcolor::WriteColor) {
+/// # use termcolor::Color;
+/// colored!(
+///     writer,
+///     "{}{}{}This text is bold blue on yellow background
+///      {}{}{}And this has default colors, but is bold and underlined",
+///     fg!(Some(Color::Blue)), bg!(Some(Color::Yellow)), bold!(true),
+///     fg!(None), bg!(None), underline!(true),
+/// ).unwrap();
+/// # }
+/// ```
+/// Note that the `bold` being set in the first block of control sequences is preserved after the
+/// second one.
+/// 
+/// And, of course, you can mix ordinary formatting outputs with the control sequences:
+///
+/// ```
+/// # use termcolor_output::colored;
+/// # fn write(writer: &mut impl termcolor::WriteColor) {
+/// # use termcolor::Color;
+/// colored!(writer, "{}{:?}{} unwraps to {}", bold!(true), Some(0), bold!(false), 0).unwrap();
+/// # }
+/// ```
+///
+/// [`write!`]: https://doc.rust-lang.org/std/macro.write.html
+/// [`std::io::Result<()>`]: https://doc.rust-lang.org/std/io/type.Result.html
 #[macro_export]
 macro_rules! colored {
     ($($arg:tt)*) => {{
-        use termcolor_output_impl::ColoredOutput;
-        use termcolor::WriteColor;
-        use std::io::Write;
+        use $crate::termcolor_output_impl::ColoredOutput;
+        use $crate::termcolor::WriteColor;
+        use $crate::std::io::Write;
         use $crate::WriteColorGuard;
         #[derive(ColoredOutput)]
         enum __Writer {
