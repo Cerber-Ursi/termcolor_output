@@ -3,6 +3,8 @@ name = "termcolor_output"
 version = "1.0.0-rc.1"
 authors = ["Cerberuser"]
 edition = "2018"
+description = "Interface crate for styled output to termcolor through macro"
+license = "MIT"
 
 [dependencies]
 termcolor_output_impl = { path = "../derive" }
