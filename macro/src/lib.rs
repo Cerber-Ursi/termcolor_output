@@ -25,6 +25,13 @@ pub fn guard(w: &mut impl termcolor::WriteColor) -> &mut impl termcolor::WriteCo
     w
 }
 
+#[doc(hidden)]
+pub trait WriteColorGuard {
+    fn guard(&mut self) -> &mut Self {
+        self
+    }
+}
+impl<T: termcolor::WriteColor> WriteColorGuard for T {} 
 
 /// The macro writing colored text.
 /// 
@@ -34,8 +41,9 @@ pub fn guard(w: &mut impl termcolor::WriteColor) -> &mut impl termcolor::WriteCo
 /// 
 /// Simple formatting is provided in exactly the same way as for standard writes:
 /// ```
+/// use termcolor_output::colored;
 /// fn write_simple(writer: &mut impl termcolor::WriteColor) {
-///     colored!(writer, "This text is {} styled", not).unwrap();
+///     colored!(writer, "This text is {} styled", "not").unwrap();
 /// }
 /// ```
 #[macro_export]
@@ -44,6 +52,7 @@ macro_rules! colored {
         use termcolor_output_impl::ColoredOutput;
         use termcolor::WriteColor;
         use std::io::Write;
+        use $crate::WriteColorGuard;
         #[derive(ColoredOutput)]
         enum __Writer {
             data = (stringify!($($arg)*), 0).1

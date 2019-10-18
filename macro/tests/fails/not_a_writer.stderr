@@ -1,5 +1,9 @@
-error: Not enough input parameters for this format string
- --> $DIR/not_a_writer.rs:5:28
+error[E0599]: no method named `guard` found for type `u32` in the current scope
+ --> $DIR/not_a_writer.rs:5:5
   |
 5 |     colored!(not_a_writer, "test");
-  |                            ^^^^^^
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: the method `guard` exists but the following trait bounds were not satisfied:
+          `u32 : termcolor_output::WriteColorGuard`
+  = note: this error originates in a macro outside of the current crate (in Nightly builds, run with -Z external-macro-backtrace for more info)

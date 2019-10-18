@@ -232,7 +232,12 @@ pub fn merge_items(format: FormatItems, input: Vec<InputItem>) -> Result<Vec<Out
             // and then push the sequence itself.
             Some(InputItem::Ctrl(ctrl)) => {
                 // TODO - carry spans with Ctrl?
-                pull_format(&mut format, &mut cur_format, Span::call_site(), Span::call_site())?;
+                pull_format(
+                    &mut format,
+                    &mut cur_format,
+                    Span::call_site(),
+                    Span::call_site(),
+                )?;
                 flush(&mut cur_format, &mut cur_items, &mut output);
                 output.push(OutputItem::Ctrl(ctrl));
             }
@@ -249,17 +254,24 @@ pub fn merge_items(format: FormatItems, input: Vec<InputItem>) -> Result<Vec<Out
                 cur_items.push(raw);
             }
             // If the items vector is exhausted, well, we're either OK, or have too long format string.
-            None => match format.next() {
-                None => {
-                    flush(&mut cur_format, &mut cur_items, &mut output);
-                    break;
-                }
-                Some(_) => {
+            None => match pull_format(
+                &mut format,
+                &mut cur_format,
+                Span::call_site(),
+                Span::call_site(),
+            ) {
+                // We have to effectively "reverse" the result, since if we've successfully pulled
+                // something, it means that we've got something unexpected.
+                Ok(_) => {
                     return Err((
                         format_span,
                         format_span,
                         "Not enough input parameters for this format string",
                     ))
+                }
+                Err(_) => {
+                    flush(&mut cur_format, &mut cur_items, &mut output);
+                    break;
                 }
             },
         }

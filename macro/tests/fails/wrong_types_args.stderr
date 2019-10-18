@@ -1,11 +1,3 @@
-warning: unused import: `Color`
- --> $DIR/wrong_types_args.rs:1:17
-  |
-1 | use termcolor::{Color, NoColor};
-  |                 ^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
-
 error[E0277]: `std::option::Option<()>` doesn't implement `std::fmt::Display`
  --> $DIR/wrong_types_args.rs:8:35
   |
