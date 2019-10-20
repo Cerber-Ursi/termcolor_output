@@ -143,9 +143,13 @@ fn raw(entry: RawOutput) -> TokenStream {
     let inner = vec![
         tt!(Ident("__writer__", Span::call_site())),
         tt!(Punct(',', Alone)),
-        tt!(Literal::string(&fmt)),
     ]
     .into_iter()
+    .chain(
+        format!("\"{}\"", fmt).parse::<TokenStream>()
+            .expect(concat!("Unable to parse format string as token stream in codegen; this is supposed to be unreachable. Please report this case to ", env!("CARGO_PKG_REPOSITORY"), "/issues"))
+            .into_iter(),
+    )
     .chain(
         items
             .into_iter()
