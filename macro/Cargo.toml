@@ -7,7 +7,7 @@ description = "Interface crate for styled output to termcolor through macro."
 license = "MIT"
 
 [dependencies]
-termcolor_output_impl = "1.0.0-rc.2"
+termcolor_output_impl = "1.0.0-rc.3"
 termcolor = "1.0"
 
 [dev-dependencies]
