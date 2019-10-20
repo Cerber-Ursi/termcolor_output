@@ -1,6 +1,6 @@
 [package]
 name = "termcolor_output"
-version = "1.0.0-rc.2"
+version = "1.0.0-rc.3"
 authors = ["Cerberuser"]
 edition = "2018"
 description = "Interface crate for styled output to termcolor through macro."
