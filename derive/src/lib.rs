@@ -37,7 +37,6 @@ pub fn colored_derive(input: TokenStream) -> TokenStream {
                 )
                 .collect())
         })
-        .unwrap_or_else(|err| compile_error(err));
-    let out = macro_wrapper(closure_wrapper(body));
-    out
+        .unwrap_or_else(compile_error);
+    macro_wrapper(closure_wrapper(body))
 }
