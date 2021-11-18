@@ -38,5 +38,5 @@ pub fn colored_generate(input: TokenStream) -> TokenStream {
                 .collect())
         })
         .unwrap_or_else(compile_error);
-    macro_wrapper(closure_wrapper(body))
+    closure_wrapper(body)
 }

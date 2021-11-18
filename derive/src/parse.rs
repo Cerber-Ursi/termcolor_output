@@ -54,6 +54,8 @@ fn parse_tokens(input: TokenStream) -> Result<Vec<TokenStream>> {
                 } else {
                     args.push(cur.drain(..).collect());
                 }
+            } else {
+                cur.push(tok);
             }
         } else {
             cur.push(tok);

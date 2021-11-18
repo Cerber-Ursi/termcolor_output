@@ -23,26 +23,6 @@ macro_rules! ts {
     };
 }
 
-pub fn macro_wrapper(body: TokenStream) -> TokenStream {
-    ts![tt!(Group(
-        Brace,
-        ts![
-            tt!(Ident("macro_rules", Span::call_site())),
-            tt!(Punct('!', Alone)),
-            tt!(Ident("colored_impl", Span::call_site())),
-            tt!(Group(
-                Brace,
-                ts![
-                    tt!(Group(Parenthesis, TokenStream::new())),
-                    tt!(Punct('=', Joint)),
-                    tt!(Punct('>', Alone)),
-                    tt!(Group(Brace, body))
-                ]
-            ))
-        ]
-    ))]
-}
-
 pub fn closure_wrapper(body: TokenStream) -> TokenStream {
     ts!(
         tt!(Punct('|', Alone)),
@@ -101,18 +81,19 @@ pub fn guard(writer: TokenStream) -> TokenStream {
         tt!(Ident("mut", Span::call_site())),
         tt!(Ident("_", Span::call_site())),
         tt!(Punct('=', Alone)),
-        tt!(Ident("termcolor_output", Span::call_site())),
-        tt!(Punct(':', Joint)),
-        tt!(Punct(':', Alone)),
-        tt!(Ident(
-            "guard",
-            writer
-                .clone()
-                .into_iter()
-                .next()
-                .map_or(Span::call_site(), |t| t.span())
-        )),
-        tt!(Group(Parenthesis, writer)),
+        // tt!(Ident("termcolor_output", Span::call_site())),
+        // tt!(Punct(':', Joint)),
+        // tt!(Punct(':', Alone)),
+        // tt!(Ident(
+        //     "guard",
+        //     writer
+        //         .clone()
+        //         .into_iter()
+        //         .next()
+        //         .map_or(Span::call_site(), |t| t.span())
+        // )),
+        // tt!(Group(Parenthesis, writer)),
+        tt!(Group(Brace, writer)),
         tt!(Punct(';', Alone)),
     )
 }
