@@ -1,29 +1,8 @@
 use crate::*;
 use proc_macro::{Span, TokenStream, TokenTree};
 
-fn wrong_input() -> CompileError {
-    (
-        Span::call_site(),
-        Span::call_site(),
-        "Wrong input passed to proc-macro-derive; did you try to use the termcolor_output_impl directly?",
-    )
-}
-/// Parse input, assuming that it has the known form.
-fn parse_wrapper(input: TokenStream) -> Result<TokenStream> {
-    match input.into_iter().nth(2) {
-        Some(TokenTree::Group(group)) => match group.stream().into_iter().nth(2) {
-            Some(TokenTree::Group(group)) => match group.stream().into_iter().nth(2) {
-                Some(TokenTree::Group(group)) => Ok(group.stream()),
-                _ => Err(wrong_input()),
-            },
-            _ => Err(wrong_input()),
-        },
-        _ => Err(wrong_input()),
-    }
-}
-
 pub fn parse_input(input: TokenStream) -> Result<MacroInput> {
-    let mut items = parse_tokens(parse_wrapper(input)?)?.into_iter();
+    let mut items = parse_tokens(input)?.into_iter();
     let writer = match items.next() {
         Some(f) => f,
         None => {
@@ -74,11 +53,11 @@ fn parse_tokens(input: TokenStream) -> Result<Vec<TokenStream>> {
                     ));
                 } else {
                     args.push(cur.drain(..).collect());
-                    continue;
                 }
             }
+        } else {
+            cur.push(tok);
         }
-        cur.push(tok);
     }
     if !cur.is_empty() {
         args.push(cur.into_iter().collect());

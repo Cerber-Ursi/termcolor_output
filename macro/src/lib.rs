@@ -18,55 +18,6 @@
 //! [`termcolor`]: http://docs.rs/termcolor
 //! [`write!`]: https://doc.rust-lang.org/stable/std/macro.write.html
 
-trait ColoredOutput {}
-
-/// Extension trait for [`WriteColor`] instances.
-///
-/// This trait is not intended for public use. Its only purpose is to allow us check if the
-/// provided value implements [`WriteColor`] in an ergonomic way, without consuming the value if
-/// unnecessary, and it is used internally by the [`colored`] macro.
-///
-/// You'll probably see this trait only in type errors, if the first argument to the macro appears
-/// to be of the wrong type.
-///
-/// ## Example
-///
-/// ```compile_fail
-/// use termcolor_output::colored;
-/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
-/// colored!(0u8, "This won't be written")?;
-/// # Ok(())
-/// # }
-/// ```
-///
-/// This example yields the following error:
-/// ```text
-/// error[E0599]: no method named `guard` found for type `u8` in the current scope
-///  --> src/lib.rs:37:1
-///    |
-///  5 | colored!(0u8, "This won't be written")?;
-///    |          ^^^                          
-///    |
-///    = note: the method `guard` exists but the following trait bounds were not satisfied:
-///                    `u8 : termcolor_output::WriteColorGuard`
-/// ```
-///
-/// [`WriteColor`]: https://docs.rs/termcolor/1.0.5/termcolor/trait.WriteColor.html
-/// [`colored`]: colored
-pub trait WriteColorGuard {
-    fn guard(&mut self) -> &mut Self {
-        self
-    }
-}
-impl<T: termcolor::WriteColor> WriteColorGuard for T {}
-
-#[doc(hidden)]
-pub use std;
-#[doc(hidden)]
-pub use termcolor;
-#[doc(hidden)]
-pub use termcolor_output_impl;
-
 /// The macro writing colored text.
 ///
 /// Like the standard [`write!`] macro, it takes the writer, format string and the sequence of
@@ -143,15 +94,8 @@ pub use termcolor_output_impl;
 #[macro_export]
 macro_rules! colored {
     ($($arg:tt)*) => {{
-        use $crate::termcolor_output_impl::ColoredOutput;
-        use $crate::termcolor::WriteColor;
-        use $crate::std::io::Write;
-        use $crate::WriteColorGuard;
-        #[derive(ColoredOutput)]
-        enum __Writer {
-            Data = (stringify!($($arg)*), 0).1
-        }
-        colored_impl!()
+        use $crate::termcolor_output_impl::colored_impl;
+        colored_impl!($($arg)*)
     }}
 }
 
