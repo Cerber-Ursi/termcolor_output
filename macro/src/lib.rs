@@ -18,6 +18,8 @@
 //! [`termcolor`]: http://docs.rs/termcolor
 //! [`write!`]: https://doc.rust-lang.org/stable/std/macro.write.html
 
+pub use termcolor_output_impl;
+
 /// The macro writing colored text.
 ///
 /// Like the standard [`write!`] macro, it takes the writer, format string and the sequence of
@@ -94,8 +96,7 @@
 #[macro_export]
 macro_rules! colored {
     ($($arg:tt)*) => {{
-        use $crate::termcolor_output_impl::colored_impl;
-        colored_impl!($($arg)*)
+        $crate::termcolor_output_impl::colored_generate!($($arg)*)
     }}
 }
 
@@ -109,7 +110,8 @@ pub fn colored_ln<W: termcolor::WriteColor, F: FnOnce(&mut W) -> std::io::Result
     buf: &mut W,
     func: F,
 ) -> std::io::Result<()> {
-    colored!(buf, "{}", reset!())?;
+    colored!(buf, "{}", reset!());
     func(buf)?;
-    colored!(buf, "{}\n", reset!())
+    colored!(buf, "{}\n", reset!());
+    Ok(())
 }

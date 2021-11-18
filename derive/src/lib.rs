@@ -17,7 +17,7 @@ use parse::*;
 use types::*;
 
 #[proc_macro]
-pub fn colored_impl(input: TokenStream) -> TokenStream {
+pub fn colored_generate(input: TokenStream) -> TokenStream {
     let body = parse_input(input)
         .and_then(|input| {
             let MacroInput {
