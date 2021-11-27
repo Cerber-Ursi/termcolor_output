@@ -1,7 +1,7 @@
 [package]
 name = "termcolor_output_impl"
 version = "1.1.0"
-authors = ["Cerberuser"]
+authors = ["Cerber Ursi <dev+rust@cerbe.ru>"]
 edition = "2018"
 description = "Implementation crate for colored! macro."
 license = "MIT"
